@@ -40,7 +40,6 @@ class SessionServiceTest {
 
     private UserRepository userRepository;
 
-    private Session session;
 
     @BeforeEach
     public void setup() {
@@ -51,7 +50,7 @@ class SessionServiceTest {
 
     @Test
     void create() {
-        session = Session.builder()
+        Session session = Session.builder()
                 .name("Test Session")
                 .date(new Date())
                 .description("This is a test session")
