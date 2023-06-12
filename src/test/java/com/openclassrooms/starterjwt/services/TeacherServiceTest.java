@@ -77,9 +77,11 @@ class TeacherServiceTest {
 
 
         Teacher result = underTest.findById(teacherId);
-        Assertions.assertNull(result);
 
 
         verify(teacherRepository).findById(teacherId);
+
+        
+        Assertions.assertNull(result);
     }
 }
