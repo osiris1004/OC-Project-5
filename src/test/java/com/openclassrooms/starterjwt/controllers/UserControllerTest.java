@@ -1,33 +1,47 @@
 package com.openclassrooms.starterjwt.controllers;
-
+import com.github.javafaker.Faker;
 import com.openclassrooms.starterjwt.dto.UserDto;
 import com.openclassrooms.starterjwt.mapper.UserMapper;
 import com.openclassrooms.starterjwt.models.User;
+import com.openclassrooms.starterjwt.services.SessionService;
 import com.openclassrooms.starterjwt.services.UserService;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.Collection;
-
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+
+@ExtendWith(MockitoExtension.class)
 class UserControllerTest {
+    @Mock
+    private UserService userService;
+
+    @Mock
+    private UserMapper userMapper;
+
+    @Mock
+    private UserController underTest;
+
+    private final Faker faker = new Faker();
+
+    @BeforeEach
+    public void setup() {
+        underTest = new UserController(userService, userMapper);
+    }
 
     @Test
-    void findById_ExistingUser_ReturnsUserDto() {
-        UserService userService = mock(UserService.class);
-        UserMapper userMapper = mock(UserMapper.class);
-        UserController userController = new UserController(userService, userMapper);
-
+    void testFindById_ExistingUser_ReturnsUserDto() {
+      
         long userId = 1L;
         User user = new User();
         UserDto userDto = new UserDto();
@@ -35,49 +49,37 @@ class UserControllerTest {
         when(userService.findById(userId)).thenReturn(user);
         when(userMapper.toDto(user)).thenReturn(userDto);
 
-        ResponseEntity<?> response = userController.findById(String.valueOf(userId));
+        ResponseEntity<?> response = underTest.findById(String.valueOf(userId));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(userDto);
     }
 
     @Test
-    void findById_NonExistingUser_ReturnsNotFound() {
-        UserService userService = mock(UserService.class);
-        UserMapper userMapper = mock(UserMapper.class);
-        UserController userController = new UserController(userService, userMapper);
-
+    void testFindById_NonExistingUser_ReturnsNotFound() {
         long userId = 1L;
 
         when(userService.findById(userId)).thenReturn(null);
 
-        ResponseEntity<?> response = userController.findById(String.valueOf(userId));
+        ResponseEntity<?> response = underTest.findById(String.valueOf(userId));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNull();
     }
 
     @Test
-    void findById_InvalidId_ReturnsBadRequest() {
-        UserService userService = mock(UserService.class);
-        UserMapper userMapper = mock(UserMapper.class);
-        UserController userController = new UserController(userService, userMapper);
+    void testFindById_InvalidId_ReturnsBadRequest() {
+    String invalidId = faker.idNumber().invalid();
 
-        String invalidId = "abc";
+    ResponseEntity<?> response = underTest.findById(invalidId);
 
-        ResponseEntity<?> response = userController.findById(invalidId);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isNull();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody()).isNull();
     }
 
     @Test
-    void delete_ValidUserAndAuthenticated_ReturnsOk() {
-        UserService userService = mock(UserService.class);
-        UserMapper userMapper = mock(UserMapper.class);
-        UserController userController = new UserController(userService, userMapper);
-
-        long userId = 1L;
+    void testDelete_ValidUserAndAuthenticated_ReturnsOk() {
+        long userId = faker.number().randomNumber();
         User user = new User();
 
         UserDetails userDetails = mock(UserDetails.class);
@@ -85,24 +87,19 @@ class UserControllerTest {
         SecurityContextHolder.setContext(securityContext);
 
         when(userService.findById(userId)).thenReturn(user);
-        when(SecurityContextHolder.getContext()).thenReturn(securityContext);
         when(securityContext.getAuthentication()).thenReturn(mock(Authentication.class));
         when(securityContext.getAuthentication().getPrincipal()).thenReturn(userDetails);
         when(userDetails.getUsername()).thenReturn(user.getEmail());
 
-        ResponseEntity<?> response = userController.save(String.valueOf(userId));
+        ResponseEntity<?> response = underTest.save(String.valueOf(userId));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNull();
     }
 
     @Test
-    void delete_ValidUserAndNotAuthenticated_ReturnsUnauthorized() {
-        UserService userService = mock(UserService.class);
-        UserMapper userMapper = mock(UserMapper.class);
-        UserController userController = new UserController(userService, userMapper);
-
-        long userId = 1L;
+    void testDelete_ValidUserAndNotAuthenticated_ReturnsUnauthorized() {
+        long userId = faker.number().randomNumber();
         User user = new User();
 
         UserDetails userDetails = mock(UserDetails.class);
@@ -110,42 +107,33 @@ class UserControllerTest {
         SecurityContextHolder.setContext(securityContext);
 
         when(userService.findById(userId)).thenReturn(user);
-        when(SecurityContextHolder.getContext()).thenReturn(securityContext);
         when(securityContext.getAuthentication()).thenReturn(mock(Authentication.class));
         when(securityContext.getAuthentication().getPrincipal()).thenReturn(userDetails);
         when(userDetails.getUsername()).thenReturn("different-email@example.com");
 
-        ResponseEntity<?> response = userController.save(String.valueOf(userId));
+        ResponseEntity<?> response = underTest.save(String.valueOf(userId));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(response.getBody()).isNull();
     }
 
     @Test
-    void delete_NonExistingUser_ReturnsNotFound() {
-        UserService userService = mock(UserService.class);
-        UserMapper userMapper = mock(UserMapper.class);
-        UserController userController = new UserController(userService, userMapper);
-
-        long userId = 1L;
+    void testDelete_NonExistingUser_ReturnsNotFound() {
+        long userId = faker.number().randomNumber();
 
         when(userService.findById(userId)).thenReturn(null);
 
-        ResponseEntity<?> response = userController.save(String.valueOf(userId));
+        ResponseEntity<?> response = underTest.save(String.valueOf(userId));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNull();
     }
 
     @Test
-    void delete_InvalidId_ReturnsBadRequest() {
-        UserService userService = mock(UserService.class);
-        UserMapper userMapper = mock(UserMapper.class);
-        UserController userController = new UserController(userService, userMapper);
+    void testDelete_InvalidId_ReturnsBadRequest() {
+        String invalidId = faker.idNumber().invalid();
 
-        String invalidId = "abc";
-
-        ResponseEntity<?> response = userController.save(invalidId);
+        ResponseEntity<?> response = underTest.save(invalidId);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNull();
