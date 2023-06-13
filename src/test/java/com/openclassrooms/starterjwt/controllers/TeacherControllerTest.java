@@ -36,7 +36,7 @@ public class TeacherControllerTest {
 
     @Test
     public void findById_ValidId_ReturnsTeacherDto() {
-        // Arrange
+
         String id = "1";
         Teacher teacher = new Teacher();
         teacher.setId(1L);
@@ -44,10 +44,10 @@ public class TeacherControllerTest {
         when(teacherService.findById(1L)).thenReturn(teacher);
         when(teacherMapper.toDto(teacher)).thenReturn(new TeacherDto());
 
-        // Act
+
         ResponseEntity<?> responseEntity = teacherController.findById(id);
 
-        // Assert
+
         verify(teacherService).findById(1L);
         verify(teacherMapper).toDto(teacher);
         assert responseEntity.getStatusCode() == HttpStatus.OK;
@@ -57,25 +57,25 @@ public class TeacherControllerTest {
 
     @Test
     public void findById_NonExistingId_ReturnsNotFound() {
-        // Arrange
+
         String id = "1";
 
         when(teacherService.findById(anyLong())).thenReturn(null);
 
-        // Create an instance of TeacherController
+
         TeacherController teacherController = new TeacherController(teacherService, teacherMapper);
 
-        // Act
+
         ResponseEntity<?> responseEntity = teacherController.findById(id);
 
-        // Assert
+
         verify(teacherService).findById(anyLong());
         assert responseEntity.getStatusCode() == HttpStatus.NOT_FOUND;
     }
 
     @Test
     public void findAll_ReturnsListOfTeacherDtos() {
-        // Arrange
+
         Teacher teacher1 = new Teacher();
         teacher1.setId(1L);
         Teacher teacher2 = new Teacher();
@@ -84,17 +84,16 @@ public class TeacherControllerTest {
 
         when(teacherService.findAll()).thenReturn(teachers);
 
-        // Create a list of TeacherDto objects to be returned by teacherMapper.toDto(teachers)
+
         List<TeacherDto> expectedTeacherDtos = Arrays.asList(new TeacherDto(), new TeacherDto());
         when(teacherMapper.toDto(teachers)).thenReturn(expectedTeacherDtos);
 
-        // Create an instance of TeacherController
+
         TeacherController teacherController = new TeacherController(teacherService, teacherMapper);
 
-        // Act
+
         ResponseEntity<?> responseEntity = teacherController.findAll();
 
-        // Assert
         verify(teacherService).findAll();
         verify(teacherMapper).toDto(teachers);
         assert responseEntity.getStatusCode() == HttpStatus.OK;
