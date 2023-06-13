@@ -1,5 +1,5 @@
 package com.openclassrooms.starterjwt.services;
-
+import com.github.javafaker.Faker;
 import com.openclassrooms.starterjwt.exception.BadRequestException;
 import com.openclassrooms.starterjwt.exception.NotFoundException;
 import com.openclassrooms.starterjwt.models.Session;
@@ -12,59 +12,55 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.LocalDate;
-import java.time.Month;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 
+@ExtendWith(MockitoExtension.class)
 class SessionServiceTest {
+
+    @Mock
+    private SessionRepository sessionRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     private SessionService underTest;
 
-    private SessionRepository sessionRepository;
 
-    private UserRepository userRepository;
+     private final Faker faker = new Faker();
 
 
     @BeforeEach
     public void setup() {
-        sessionRepository = Mockito.mock(SessionRepository.class);
-        userRepository = Mockito.mock(UserRepository.class);
         underTest = new SessionService(sessionRepository, userRepository);
     }
 
     @Test
-    void create() {
+    void testCreate() {
+        //!given
         Session session = Session.builder()
-                .name("Test Session")
+                .name(faker.name().name())
                 .date(new Date())
-                .description("This is a test session")
+                .description(faker.avatar().toString())
                 .teacher(new Teacher())
                 .build();
-
-
-        //!when
          underTest.create(session);
+
+  
 
         //!then
         ArgumentCaptor<Session> sessionArgumentCaptor  = ArgumentCaptor.forClass(Session.class);
 
-        verify(sessionRepository).save(sessionArgumentCaptor .capture());//!studentArgumentCaptor.capture() get the argument
+        verify(sessionRepository).save(sessionArgumentCaptor.capture());//!studentArgumentCaptor.capture() get the argument
 
         //!captureStudent  is the student ....Repository(student) receive or what the service receive
         Session captureSession = sessionArgumentCaptor.getValue();
@@ -75,30 +71,30 @@ class SessionServiceTest {
     }
 
     @Test
-    void delete() {
+    void testDelete() {
         // !given
         Long sessionId = 1L;
-        // Call the delete method
-        underTest.delete(sessionId);
-        // Verify that the deleteById method is called with the correct argument
+        // !then
+         underTest.delete(sessionId);
+        //! Verify that the deleteById method is called with the correct argument
         verify(sessionRepository).deleteById(sessionId);
     }
 
     @Test
-    void findAll() {
+    void testFindAll() {
 
         List<Session> sessions = new ArrayList<>();
         sessions.add(new Session());
         sessions.add(new Session());
 
 
-        Mockito.when(sessionRepository.findAll()).thenReturn(sessions);
+        when(sessionRepository.findAll()).thenReturn(sessions);
 
 
         List<Session> result = underTest.findAll();
 
 
-        Mockito.verify(sessionRepository).findAll();
+        verify(sessionRepository).findAll();
 
 
         Assertions.assertEquals(sessions.size(), result.size());
@@ -106,49 +102,50 @@ class SessionServiceTest {
     }
 
     @Test
-    void getById() {
+    void testGetById() {
         Long sessionId = 1L;
 
 
-        Mockito.when(sessionRepository.findById(sessionId)).thenReturn(Optional.empty());
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.empty());
 
 
         Session result = underTest.getById(sessionId);
 
 
-        Mockito.verify(sessionRepository).findById(sessionId);
+        verify(sessionRepository).findById(sessionId);
 
 
         Assertions.assertNull(result);
     }
 
     @Test
-    void update() {
+    void testUpdate() {
         Long sessionId = 1L;
         Session sessionToUpdate = new Session();
         sessionToUpdate.setId(sessionId);
 
 
-        Mockito.when(sessionRepository.save(sessionToUpdate)).thenReturn(sessionToUpdate);
+        when(sessionRepository.save(sessionToUpdate)).thenReturn(sessionToUpdate);
 
 
         Session result = underTest.update(sessionId, sessionToUpdate);
 
 
-        Mockito.verify(sessionRepository).save(sessionToUpdate);
+        verify(sessionRepository).save(sessionToUpdate);
 
 
         Assertions.assertEquals(sessionToUpdate, result);
     }
 
     @Test
-    void participate() {
+    void testParticipate() {
         Long sessionId = 1L;
         Long userId = 1L;
 
 
         Session session = new Session();
         session.setId(sessionId);
+
         session.setUsers(new ArrayList<>());
 
 
@@ -156,19 +153,19 @@ class SessionServiceTest {
         user.setId(userId);
 
 
-        Mockito.when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
 
 
-        Mockito.when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
 
         underTest.participate(sessionId, userId);
 
 
-        Mockito.verify(sessionRepository).findById(sessionId);
+        verify(sessionRepository).findById(sessionId);
 
 
-        Mockito.verify(userRepository).findById(userId);
+        verify(userRepository).findById(userId);
 
 
         Assertions.assertTrue(session.getUsers().contains(user));
@@ -193,19 +190,19 @@ class SessionServiceTest {
         session.getUsers().add(user);
 
 
-        Mockito.when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
 
 
         underTest.noLongerParticipate(sessionId, userId);
 
 
-        Mockito.verify(sessionRepository).findById(sessionId);
+        verify(sessionRepository).findById(sessionId);
 
 
         Assertions.assertFalse(session.getUsers().contains(user));
 
 
-        Mockito.verify(sessionRepository).save(session);
+        verify(sessionRepository).save(session);
     }
 
     @Test
@@ -214,16 +211,15 @@ class SessionServiceTest {
         Long userId = 1L;
 
 
-        Mockito.when(sessionRepository.findById(sessionId)).thenReturn(Optional.empty());
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.empty());
+
+       Assertions.assertThrows(NotFoundException.class, () -> underTest.noLongerParticipate(sessionId, userId));
+       
+
+        verify(sessionRepository).findById(sessionId);
 
 
-        Assertions.assertThrows(NotFoundException.class, () -> underTest.noLongerParticipate(sessionId, userId));
-
-
-        Mockito.verify(sessionRepository).findById(sessionId);
-
-
-        Mockito.verify(sessionRepository, Mockito.never()).save(Mockito.any(Session.class));
+        verify(sessionRepository, never()).save(any(Session.class));
     }
 
     @Test
@@ -237,15 +233,15 @@ class SessionServiceTest {
         session.setUsers(new ArrayList<>());
 
 
-        Mockito.when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
 
 
         Assertions.assertThrows(BadRequestException.class, () -> underTest.noLongerParticipate(sessionId, userId));
 
 
-        Mockito.verify(sessionRepository).findById(sessionId);
+        verify(sessionRepository).findById(sessionId);
 
 
-        Mockito.verify(sessionRepository, Mockito.never()).save(Mockito.any(Session.class));
+        verify(sessionRepository, never()).save(any(Session.class));
     }
 }
