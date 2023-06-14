@@ -63,11 +63,7 @@ public class TeacherControllerTest {
 
         when(teacherService.findById(anyLong())).thenReturn(null);
 
-
-        TeacherController teacherController = new TeacherController(teacherService, teacherMapper);
-
-
-        ResponseEntity<?> responseEntity = teacherController.findById(id);
+        ResponseEntity<?> responseEntity = underTest.findById(id);
 
 
         verify(teacherService).findById(anyLong());
