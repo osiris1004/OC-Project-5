@@ -9,16 +9,33 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import java.util.Arrays;
 import java.util.List;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.*;
+import org.springframework.test.web.servlet.MockMvc;
+
 @ExtendWith(MockitoExtension.class)
+@AutoConfigureMockMvc
+@SpringBootTest
 public class TeacherControllerTest {
+
+     @Autowired
+        private MockMvc mockMvc;
+
     @Mock
     private TeacherService teacherService;
 
@@ -35,65 +52,64 @@ public class TeacherControllerTest {
         underTest = new TeacherController(teacherService, teacherMapper);
     }
 
-    @Test
-    public void testFindById_ValidId_ReturnsTeacherDto() {
+  @Test
+public void testFindById() throws Exception {
+    TeacherDto teacherDto = new TeacherDto();
+    teacherDto.setId(1L);
+    teacherDto.setFirstName("John Doe");
+      teacherDto.setLastName("John Doe");
 
-        String id = "1";
-        Teacher teacher = new Teacher();
-        teacher.setId(1L);
+    Teacher teacher = new Teacher();
+    teacher.setId(1L);
+    teacher.setFirstName("John Doe");
+    teacher.setLastName("John Do");
 
-        when(teacherService.findById(1L)).thenReturn(teacher);
-        when(teacherMapper.toDto(teacher)).thenReturn(new TeacherDto());
+    when(teacherService.findById(1L)).thenReturn(teacher);
+    when(teacherMapper.toDto(teacher)).thenReturn(teacherDto);
 
+    mockMvc.perform(get("/api/teacher/1"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id", is(1)))
+            .andExpect(jsonPath("$.firstName", is("John Doe")));
 
-        ResponseEntity<?> responseEntity = underTest.findById(id);
+    verify(teacherService, times(1)).findById(1L);
+    verify(teacherMapper, times(1)).toDto(teacher);
+}
 
+@Test
+public void testFindAll() throws Exception {
+    TeacherDto teacherDto1 = new TeacherDto();
+    teacherDto1.setId(1L);
+    teacherDto1.setFirstName("John Doe");
 
-        verify(teacherService).findById(1L);
-        verify(teacherMapper).toDto(teacher);
-        assert responseEntity.getStatusCode() == HttpStatus.OK;
-        assert responseEntity.getBody() != null;
-        assert responseEntity.getBody() instanceof TeacherDto;
-    }
+    TeacherDto teacherDto2 = new TeacherDto();
+    teacherDto2.setId(2L);
+    teacherDto2.setFirstName("Jane Smith");
 
-    @Test
-    public void testFindById_NonExistingId_ReturnsNotFound() {
+    Teacher teacher1 = new Teacher();
+    teacher1.setId(1L);
+    teacher1.setFirstName("John Doe");
 
-        String id = faker.number().digit();
+    Teacher teacher2 = new Teacher();
+    teacher2.setId(2L);
+    teacher2.setFirstName("Jane Smith");
 
-        when(teacherService.findById(anyLong())).thenReturn(null);
+    List<Teacher> teachers = Arrays.asList(teacher1, teacher2);
+    List<TeacherDto> teacherDtos = Arrays.asList(teacherDto1, teacherDto2);
 
-        ResponseEntity<?> responseEntity = underTest.findById(id);
+    when(teacherService.findAll()).thenReturn(teachers);
+    when(teacherMapper.toDto(teachers)).thenReturn(teacherDtos);
 
+    mockMvc.perform(get("/api/teacher"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].id", is(1)))
+            .andExpect(jsonPath("$[0].name", is("John Doe")))
+            .andExpect(jsonPath("$[1].id", is(2)))
+            .andExpect(jsonPath("$[1].name", is("Jane Smith")));
 
-        verify(teacherService).findById(anyLong());
-        assert responseEntity.getStatusCode() == HttpStatus.NOT_FOUND;
-    }
-
-    @Test
-    public void testFindAll_ReturnsListOfTeacherDtos() {
-
-        Teacher teacher1 = new Teacher();
-        teacher1.setId(faker.number().randomNumber());
-        Teacher teacher2 = new Teacher();
-        teacher2.setId(faker.number().randomNumber());
-        List<Teacher> teachers = Arrays.asList(teacher1, teacher2);
-
-        when(teacherService.findAll()).thenReturn(teachers);
-
-
-        List<TeacherDto> expectedTeacherDtos = Arrays.asList(new TeacherDto(), new TeacherDto());
-        when(teacherMapper.toDto(teachers)).thenReturn(expectedTeacherDtos);
-
-        ResponseEntity<?> responseEntity = underTest.findAll();
-
-        verify(teacherService).findAll();
-        verify(teacherMapper).toDto(teachers);
-        assert responseEntity.getStatusCode() == HttpStatus.OK;
-        assert responseEntity.getBody() != null;
-        assert responseEntity.getBody() instanceof List;
-        List<?> responseList = (List<?>) responseEntity.getBody();
-        assert responseList.size() == expectedTeacherDtos.size();
-        assert responseList.get(0) instanceof TeacherDto;
-    }
+    verify(teacherService, times(1)).findAll();
+    verify(teacherMapper, times(1)).toDto(teachers);
+}
 }
