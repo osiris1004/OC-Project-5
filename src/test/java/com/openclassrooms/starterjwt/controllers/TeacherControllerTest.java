@@ -1,115 +1,65 @@
 package com.openclassrooms.starterjwt.controllers;
-import com.github.javafaker.Faker;
+
 import com.openclassrooms.starterjwt.dto.TeacherDto;
-import com.openclassrooms.starterjwt.mapper.TeacherMapper;
-import com.openclassrooms.starterjwt.models.Teacher;
-import com.openclassrooms.starterjwt.services.TeacherService;
+import com.openclassrooms.starterjwt.payload.request.LoginRequest;
+import com.openclassrooms.starterjwt.payload.response.JwtResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.*;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
 import java.util.Arrays;
 import java.util.List;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.Matchers.*;
-import org.springframework.test.web.servlet.MockMvc;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-@AutoConfigureMockMvc
-@SpringBootTest
-public class TeacherControllerTest {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ExtendWith(SpringExtension.class)
+@DirtiesContext
+@Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "classpath:cleanup.sql")
+class TeacherControllerTest {
+    @Autowired
+    private TestRestTemplate restTemplate;
 
-     @Autowired
-        private MockMvc mockMvc;
-
-    @Mock
-    private TeacherService teacherService;
-
-    @Mock
-    private TeacherMapper teacherMapper;
-
-    private TeacherController underTest;
-
-    private final Faker faker = new Faker();
-
+    private String jwtToken;
 
     @BeforeEach
-    public void setup() {
-        underTest = new TeacherController(teacherService, teacherMapper);
+    void setUp() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("yoga@studio.com");
+        loginRequest.setPassword("test!1234");
+
+        ResponseEntity<JwtResponse> loginResponse  = restTemplate.postForEntity("/api/auth/login", loginRequest, JwtResponse.class);
+        jwtToken = "Bearer " + loginResponse.getBody().getToken();
+    }
+    @Test
+    public void testGetTeacherById() {
+        // Set the Authorization header with the JWT token
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<TeacherDto> responseEntity = restTemplate.exchange("/api/teacher/1", HttpMethod.GET, entity, TeacherDto.class);
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("Margot", responseEntity.getBody().getFirstName());
     }
 
-  @Test
-public void testFindById() throws Exception {
-    TeacherDto teacherDto = new TeacherDto();
-    teacherDto.setId(1L);
-    teacherDto.setFirstName("John Doe");
-      teacherDto.setLastName("John Doe");
+    @Test
+    public void testGetAllTeachers() {
+        // Set the Authorization header with the JWT token
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
 
-    Teacher teacher = new Teacher();
-    teacher.setId(1L);
-    teacher.setFirstName("John Doe");
-    teacher.setLastName("John Do");
-
-    when(teacherService.findById(1L)).thenReturn(teacher);
-    when(teacherMapper.toDto(teacher)).thenReturn(teacherDto);
-
-    mockMvc.perform(get("/api/teacher/1"))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id", is(1)))
-            .andExpect(jsonPath("$.firstName", is("John Doe")));
-
-    verify(teacherService, times(1)).findById(1L);
-    verify(teacherMapper, times(1)).toDto(teacher);
-}
-
-@Test
-public void testFindAll() throws Exception {
-    TeacherDto teacherDto1 = new TeacherDto();
-    teacherDto1.setId(1L);
-    teacherDto1.setFirstName("John Doe");
-
-    TeacherDto teacherDto2 = new TeacherDto();
-    teacherDto2.setId(2L);
-    teacherDto2.setFirstName("Jane Smith");
-
-    Teacher teacher1 = new Teacher();
-    teacher1.setId(1L);
-    teacher1.setFirstName("John Doe");
-
-    Teacher teacher2 = new Teacher();
-    teacher2.setId(2L);
-    teacher2.setFirstName("Jane Smith");
-
-    List<Teacher> teachers = Arrays.asList(teacher1, teacher2);
-    List<TeacherDto> teacherDtos = Arrays.asList(teacherDto1, teacherDto2);
-
-    when(teacherService.findAll()).thenReturn(teachers);
-    when(teacherMapper.toDto(teachers)).thenReturn(teacherDtos);
-
-    mockMvc.perform(get("/api/teacher"))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].id", is(1)))
-            .andExpect(jsonPath("$[0].name", is("John Doe")))
-            .andExpect(jsonPath("$[1].id", is(2)))
-            .andExpect(jsonPath("$[1].name", is("Jane Smith")));
-
-    verify(teacherService, times(1)).findAll();
-    verify(teacherMapper, times(1)).toDto(teachers);
-}
+        ResponseEntity<TeacherDto[]> responseEntity = restTemplate.exchange("/api/teacher", HttpMethod.GET, entity, TeacherDto[].class);
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(2, responseEntity.getBody().length);
+    }
 }
