@@ -1,202 +1,184 @@
 package com.openclassrooms.starterjwt.controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.openclassrooms.starterjwt.dto.SessionDto;
-import com.openclassrooms.starterjwt.mapper.SessionMapper;
-import com.openclassrooms.starterjwt.models.Session;
-import com.openclassrooms.starterjwt.services.SessionService;
+import com.openclassrooms.starterjwt.payload.request.LoginRequest;
+import com.openclassrooms.starterjwt.payload.response.JwtResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.*;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.openclassrooms.starterjwt.dto.SessionDto;
 
-import org.springframework.test.web.servlet.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.Matchers.*;
+import java.time.LocalDateTime;
+import java.util.*;
 
-@AutoConfigureMockMvc
-@SpringBootTest
-@ExtendWith(MockitoExtension.class)
+import static org.junit.jupiter.api.Assertions.*;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ExtendWith(SpringExtension.class)
+@DirtiesContext
+@Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "classpath:cleanup.sql")
 public class SessionControllerTest {
 
-    private MockMvc mockMvc;
-
-    @Mock
-    private SessionService sessionService;
-
-    @Mock
-    private SessionMapper sessionMapper;
-
     @Autowired
-    private ObjectMapper objectMapper;
+    private TestRestTemplate restTemplate;
 
-    private SessionController underTest;
+    private String jwtToken;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("yoga@studio.com");
+        loginRequest.setPassword("test!1234");
 
-        underTest = new SessionController(sessionService, sessionMapper);
-        mockMvc = MockMvcBuilders.standaloneSetup(underTest).build();
+        ResponseEntity<JwtResponse> loginResponse  = restTemplate.postForEntity("/api/auth/login", loginRequest, JwtResponse.class);
+        jwtToken = "Bearer " + loginResponse.getBody().getToken();
     }
 
     @Test
     public void testFindById() throws Exception {
-        Session session = new Session();
-        session.setId(1L);
-        session.setName("Test Session");
+        // Replace with a valid session ID from your test data
+        Long sessionId = 1L;
 
-        SessionDto sessionDto = new SessionDto();
-        sessionDto.setId(1L);
-        sessionDto.setName("Test Session");
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        when(sessionService.getById(1L)).thenReturn(session);
-        when(sessionMapper.toDto(session)).thenReturn(sessionDto);
+        ResponseEntity<String> response = restTemplate.exchange("/api/session/" + sessionId, HttpMethod.GET, entity, String.class);
 
-        mockMvc.perform(get("/api/session/1"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.name", is("Test Session")));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+
+        // Optionally, you can deserialize the JSON response to a SessionDto and perform more assertions
+        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());;
+        SessionDto sessionDto = objectMapper.readValue(response.getBody(), SessionDto.class);
+        assertEquals(sessionId, sessionDto.getId());
+    }
+    @Test
+    public void testFindAllSessions() throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<String> response = restTemplate.exchange("/api/session", HttpMethod.GET, entity, String.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+
+        // Deserialize the JSON response to a List of SessionDto and perform more assertions
+        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        List<SessionDto> sessions = objectMapper.readValue(response.getBody(), new TypeReference<List<SessionDto>>() {});
+        assertTrue(sessions.size() == 2);
     }
 
-    @Test
-    public void testFindAll() throws Exception {
-        Session session1 = new Session();
-        session1.setId(1L);
-        session1.setName("Session 1");
-
-        Session session2 = new Session();
-        session2.setId(2L);
-        session2.setName("Session 2");
-
-        List<Session> sessions = new ArrayList<>();
-        sessions.add(session1);
-        sessions.add(session2);
-
-        SessionDto sessionDto1 = new SessionDto();
-        sessionDto1.setId(1L);
-        sessionDto1.setName("Session 1");
-
-        SessionDto sessionDto2 = new SessionDto();
-        sessionDto2.setId(2L);
-        sessionDto2.setName("Session 2");
-
-        List<SessionDto> sessionDtos = new ArrayList<>();
-        sessionDtos.add(sessionDto1);
-        sessionDtos.add(sessionDto2);
-
-        when(sessionService.findAll()).thenReturn(sessions);
-        when(sessionMapper.toDto(sessions)).thenReturn(sessionDtos);
-
-        mockMvc.perform(get("/api/session"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].name", is("Session 1")))
-                .andExpect(jsonPath("$[1].id", is(2)))
-                .andExpect(jsonPath("$[1].name", is("Session 2")));
-    }
 
     @Test
-    public void testCreate() throws Exception {
+    public void testCreate() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
         SessionDto sessionDto = new SessionDto();
-        sessionDto.setId(1L);
-        sessionDto.setName("New Session");
+        sessionDto.setName("Test Session " + UUID.randomUUID());
+        sessionDto.setDescription("Test Session Description");
+        sessionDto.setTeacher_id(1L);
+        sessionDto.setDate(new Date());
 
-        Session session = new Session();
-        session.setId(1L);
-        session.setName("New Session");
+        HttpEntity<SessionDto> entity = new HttpEntity<>(sessionDto, headers);
 
-       
+        ResponseEntity<SessionDto> response = restTemplate.postForEntity("/api/session", entity, SessionDto.class);
 
-        when(sessionMapper.toEntity(sessionDto)).thenReturn(session);
-        when(sessionService.create(session)).thenReturn(session);
-        when(sessionMapper.toDto(session)).thenReturn(sessionDto);
-
-        mockMvc.perform(post("/api/session")
-                .contentType(MediaType.APPLICATION_JSON)
-                 //.content("{\"id\":1,\"name\":\"New Session\"}"))
-                 .content(objectMapper.writeValueAsString(new SessionDto(1l, "New Session", new Date(), 1L, "description", null, null, null))))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.name", is("New Session")));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().getId());
     }
 
     @Test
     public void testUpdate() throws Exception {
+        // Replace with a valid session ID from your test data
+        Long sessionId = 1L;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
         SessionDto sessionDto = new SessionDto();
-        sessionDto.setId(1L);
-        sessionDto.setName("Updated Session");
+        sessionDto.setId(sessionId);
+        sessionDto.setName("Updated Test Session");
+        sessionDto.setDescription("Updated Test Session Description");
+        sessionDto.setTeacher_id(1L);
+        sessionDto.setDate(new Date());
+        sessionDto.setUpdatedAt(LocalDateTime.now());
+        sessionDto.setCreatedAt(LocalDateTime.now());
+        sessionDto.setUsers(Arrays.asList(1L));
 
-        Session session = new Session();
-        session.setId(1L);
-        session.setName("Updated Session");
+        HttpEntity<SessionDto> entity = new HttpEntity<>(sessionDto, headers);
 
-        when(sessionMapper.toEntity(sessionDto)).thenReturn(session);
-        when(sessionService.update(1L, session)).thenReturn(session);
-        when(sessionMapper.toDto(session)).thenReturn(sessionDto);
+        ResponseEntity<SessionDto> responsePut = restTemplate.exchange("/api/session/" + sessionId, HttpMethod.PUT, entity, SessionDto.class);
+        assertEquals(HttpStatus.OK, responsePut.getStatusCode());
 
-        mockMvc.perform(put("/api/session/1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"id\":1,\"name\":\"Updated Session\"}"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.name", is("Updated Session")));
+        // Fetch the updated session and check if the name was updated
+        ResponseEntity<String> response = restTemplate.exchange("/api/session/" + sessionId, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+
+        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());;
+        SessionDto updatedSession = objectMapper.readValue(response.getBody(), SessionDto.class);
+        assertEquals(sessionDto.getName(), updatedSession.getName());
     }
 
     @Test
-    public void testDelete() throws Exception {
-        Session session = new Session();
-        session.setId(1L);
-        session.setName("Test Session");
+    public void testSave() {
+        // Replace with a valid session ID from your test data
+        Long sessionId = 1L;
 
-        when(sessionService.getById(1L)).thenReturn(session);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        mockMvc.perform(delete("/api/session/1"))
-                .andExpect(status().isOk());
+        restTemplate.exchange("/api/session/" + sessionId, HttpMethod.DELETE, entity, Void.class);
 
-        verify(sessionService, times(1)).delete(1L);
+        // Verify the session was deleted by fetching it
+        ResponseEntity<String> response = restTemplate.exchange("/api/session/" + sessionId, HttpMethod.GET, entity, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
     @Test
-    public void testParticipate() throws Exception {
-        mockMvc.perform(post("/api/session/1/participate/1"))
-                .andExpect(status().isOk());
+    public void testParticipate() {
+        // Replace with valid session and user IDs from your test data
+        Long sessionId = 2L;
+        Long userId = 1L;
 
-        verify(sessionService, times(1)).participate(1L, 1L);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Void> response = restTemplate.exchange("/api/session/" + sessionId + "/participate/" + userId, HttpMethod.POST, entity, Void.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        // Fetch the session and verify the participation (depends on the data structure)
     }
 
     @Test
-    public void testNoLongerParticipate() throws Exception {
-        mockMvc.perform(delete("/api/session/1/participate/1"))
-                .andExpect(status().isOk());
+    public void testNoLongerParticipate() {
+        // Replace with valid session and user IDs from your test data
+        Long sessionId = 1L;
+        Long userId = 1L;
 
-        verify(sessionService, times(1)).noLongerParticipate(1L, 1L);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Void> response = restTemplate.exchange("/api/session/" + sessionId + "/participate/" + userId, HttpMethod.DELETE, entity, Void.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        // Fetch the session and verify the participation was removed (depends on the data structure)
     }
-
 }
