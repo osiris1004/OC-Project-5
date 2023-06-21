@@ -1,103 +1,65 @@
 package com.openclassrooms.starterjwt.controllers;
-import com.github.javafaker.Faker;
+
 import com.openclassrooms.starterjwt.dto.TeacherDto;
-import com.openclassrooms.starterjwt.mapper.TeacherMapper;
-import com.openclassrooms.starterjwt.models.Teacher;
-import com.openclassrooms.starterjwt.services.TeacherService;
+import com.openclassrooms.starterjwt.payload.request.LoginRequest;
+import com.openclassrooms.starterjwt.payload.response.JwtResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.*;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
 import java.util.Arrays;
 import java.util.List;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
-public class TeacherControllerTest {
-    @Mock
-    private TeacherService teacherService;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
 
-    @Mock
-    private TeacherMapper teacherMapper;
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ExtendWith(SpringExtension.class)
+@DirtiesContext
+@Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "classpath:cleanup.sql")
+class TeacherControllerTest {
+    @Autowired
+    private TestRestTemplate restTemplate;
 
-    private TeacherController underTest;
-
-    private final Faker faker = new Faker();
-
+    private String jwtToken;
 
     @BeforeEach
-    public void setup() {
-        underTest = new TeacherController(teacherService, teacherMapper);
+    void setUp() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("yoga@studio.com");
+        loginRequest.setPassword("test!1234");
+
+        ResponseEntity<JwtResponse> loginResponse  = restTemplate.postForEntity("/api/auth/login", loginRequest, JwtResponse.class);
+        jwtToken = "Bearer " + loginResponse.getBody().getToken();
+    }
+    @Test
+    public void testGetTeacherById() {
+        // Set the Authorization header with the JWT token
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<TeacherDto> responseEntity = restTemplate.exchange("/api/teacher/1", HttpMethod.GET, entity, TeacherDto.class);
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("Margot", responseEntity.getBody().getFirstName());
     }
 
     @Test
-    public void testFindById_ValidId_ReturnsTeacherDto() {
+    public void testGetAllTeachers() {
+        // Set the Authorization header with the JWT token
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", jwtToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        String id = "1";
-        Teacher teacher = new Teacher();
-        teacher.setId(1L);
-
-        when(teacherService.findById(1L)).thenReturn(teacher);
-        when(teacherMapper.toDto(teacher)).thenReturn(new TeacherDto());
-
-
-        ResponseEntity<?> responseEntity = underTest.findById(id);
-
-
-        verify(teacherService).findById(1L);
-        verify(teacherMapper).toDto(teacher);
-        assert responseEntity.getStatusCode() == HttpStatus.OK;
-        assert responseEntity.getBody() != null;
-        assert responseEntity.getBody() instanceof TeacherDto;
-    }
-
-    @Test
-    public void testFindById_NonExistingId_ReturnsNotFound() {
-
-        String id = faker.number().digit();
-
-        when(teacherService.findById(anyLong())).thenReturn(null);
-
-
-        TeacherController teacherController = new TeacherController(teacherService, teacherMapper);
-
-
-        ResponseEntity<?> responseEntity = teacherController.findById(id);
-
-
-        verify(teacherService).findById(anyLong());
-        assert responseEntity.getStatusCode() == HttpStatus.NOT_FOUND;
-    }
-
-    @Test
-    public void testFindAll_ReturnsListOfTeacherDtos() {
-
-        Teacher teacher1 = new Teacher();
-        teacher1.setId(faker.number().randomNumber());
-        Teacher teacher2 = new Teacher();
-        teacher2.setId(faker.number().randomNumber());
-        List<Teacher> teachers = Arrays.asList(teacher1, teacher2);
-
-        when(teacherService.findAll()).thenReturn(teachers);
-
-
-        List<TeacherDto> expectedTeacherDtos = Arrays.asList(new TeacherDto(), new TeacherDto());
-        when(teacherMapper.toDto(teachers)).thenReturn(expectedTeacherDtos);
-
-        ResponseEntity<?> responseEntity = underTest.findAll();
-
-        verify(teacherService).findAll();
-        verify(teacherMapper).toDto(teachers);
-        assert responseEntity.getStatusCode() == HttpStatus.OK;
-        assert responseEntity.getBody() != null;
-        assert responseEntity.getBody() instanceof List;
-        List<?> responseList = (List<?>) responseEntity.getBody();
-        assert responseList.size() == expectedTeacherDtos.size();
-        assert responseList.get(0) instanceof TeacherDto;
+        ResponseEntity<TeacherDto[]> responseEntity = restTemplate.exchange("/api/teacher", HttpMethod.GET, entity, TeacherDto[].class);
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(2, responseEntity.getBody().length);
     }
 }

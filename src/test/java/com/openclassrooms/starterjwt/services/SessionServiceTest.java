@@ -104,17 +104,9 @@ class SessionServiceTest {
     @Test
     void testGetById() {
         Long sessionId = 1L;
-
-
         when(sessionRepository.findById(sessionId)).thenReturn(Optional.empty());
-
-
         Session result = underTest.getById(sessionId);
-
-
         verify(sessionRepository).findById(sessionId);
-
-
         Assertions.assertNull(result);
     }
 
