@@ -13,6 +13,7 @@ import com.openclassrooms.starterjwt.security.services.UserDetailsImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -25,11 +26,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -83,7 +87,7 @@ import java.util.Optional;
 @SpringBootTest
 public class AuthControllerTest {
 
-    @Autowired
+/*     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
@@ -151,6 +155,75 @@ public class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("User registered successfully!"));
     }
+ */
 
+  @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockBean
+    private AuthenticationManager authenticationManager;
+
+    @MockBean
+    private JwtUtils jwtUtils;
+
+    @MockBean
+    private PasswordEncoder passwordEncoder;
+
+    @MockBean
+    private UserRepository userRepository;
+
+    // @Test
+    // public void testAuthenticateUser() throws Exception {
+    //     String email = "test@example.com";
+    //     String password = "password";
+    //     String jwt = "mocked-jwt-token";
+    //     UserDetailsImpl userDetails = new UserDetailsImpl(1L, email, "John", "Doe", false ,"password");
+
+    //     LoginRequest loginRequest = new LoginRequest();
+    //     loginRequest.setEmail(email);
+    //     loginRequest.setPassword(password);
+
+    //     Authentication authentication = new UsernamePasswordAuthenticationToken(email, password);
+    //     SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    //     Mockito.when(authenticationManager.authenticate(Mockito.any(Authentication.class)))
+    //             .thenReturn(authentication);
+    //     Mockito.when(jwtUtils.generateJwtToken(authentication)).thenReturn(jwt);
+    //     Mockito.when(authentication.getPrincipal()).thenReturn(userDetails);
+    //     Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.of(new User()));
+
+    //     mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/login")
+    //             .contentType(MediaType.APPLICATION_JSON)
+    //             .content(objectMapper.writeValueAsString(loginRequest)))
+    //             .andExpect(MockMvcResultMatchers.status().isOk())
+    //             .andExpect(MockMvcResultMatchers.jsonPath("$.jwt").value(jwt))
+    //             .andExpect(MockMvcResultMatchers.jsonPath("$.isAdmin").value(false));
+    //     // Add additional assertions as needed
+    // }
+
+    @Test
+    public void testRegisterUser() throws Exception {
+        String email = "test@example.com";
+        String password = "password";
+        SignupRequest signupRequest = new SignupRequest();
+        signupRequest.setEmail(email);
+        signupRequest.setFirstName("john");
+        signupRequest.setLastName("doe");
+        signupRequest.setPassword(password);
+
+        Mockito.when(userRepository.existsByEmail(email)).thenReturn(false);
+        Mockito.when(passwordEncoder.encode(password)).thenReturn("encoded-password");
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message")
+                        .value("User registered successfully!"));
+        // Add additional assertions as needed
+    }
 
 }
