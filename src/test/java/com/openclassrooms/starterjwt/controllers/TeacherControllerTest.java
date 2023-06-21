@@ -38,6 +38,12 @@ class TeacherControllerTest {
 
         ResponseEntity<JwtResponse> loginResponse  = restTemplate.postForEntity("/api/auth/login", loginRequest, JwtResponse.class);
         jwtToken = "Bearer " + loginResponse.getBody().getToken();
+
+          System.out.println(
+            "------------------------------->"+"\n"+"\n"+
+            jwtToken
+            +"\n"+"\n"+"-------------------------------->"
+            );
     }
     @Test
     public void testGetTeacherById() {
