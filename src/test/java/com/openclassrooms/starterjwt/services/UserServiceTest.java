@@ -30,7 +30,6 @@ class UserServiceTest {
         Long userId = 1L;
 
         underTest.delete(userId);
-
         verify(userRepository).deleteById(userId);
     }
 
@@ -40,11 +39,8 @@ class UserServiceTest {
         User user = new User();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-
         User result = underTest.findById(userId);
-
         verify(userRepository).findById(userId);
-
         Assertions.assertEquals(user, result);
     }
 
@@ -53,11 +49,8 @@ class UserServiceTest {
         Long userId = 1L;
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
-
         User result = underTest.findById(userId);
-
         Assertions.assertNull(result);
-
         verify(userRepository).findById(userId);
     }
 }

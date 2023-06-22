@@ -52,19 +52,10 @@ class TeacherServiceTest {
     public void testFindById() {
         Long teacherId = 1L;
 
-
         Teacher teacher = new Teacher();
-
-
         when(teacherRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
-
-
         Teacher result = underTest.findById(teacherId);
-
-
         verify(teacherRepository).findById(teacherId);
-
-
         Assertions.assertEquals(teacher, result);
     }
 
@@ -72,16 +63,9 @@ class TeacherServiceTest {
     public void testFindById_TeacherNotFound() {
         Long teacherId = 1L;
 
-
         when(teacherRepository.findById(teacherId)).thenReturn(Optional.empty());
-
-
         Teacher result = underTest.findById(teacherId);
-
-
         verify(teacherRepository).findById(teacherId);
-
-        
         Assertions.assertNull(result);
     }
 }

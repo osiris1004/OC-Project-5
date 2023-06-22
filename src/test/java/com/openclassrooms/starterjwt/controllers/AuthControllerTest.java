@@ -224,6 +224,11 @@ public class AuthControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.message")
                         .value("User registered successfully!"));
         // Add additional assertions as needed
+
+           System.out.println(
+                "------------------------------->" + "\n" + "\n" +
+                        256
+                        + "\n" + "\n" + "-------------------------------->");
     }
 
 }
