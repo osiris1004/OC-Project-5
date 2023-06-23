@@ -1,43 +1,21 @@
-describe('Login spec', () => {
+describe('E2E', () => {
 
   it('Register ok', () => {
-        
+
     cy.visit('/register');
-    cy.get('input[formControlName=firstName]').type('black');
-    cy.get('input[formControlName=lastName]').type('cover');
+
+    cy.get('input[formControlName=firstName]').type('yoga');
+    cy.get('input[formControlName=lastName]').type('studio');
     cy.get('input[formControlName=email]').type(`yoga${Date.now().toString()}@studio.com`);
-    cy.get('input[formControlName=password]').type(`${'test!1234'}{enter}{enter}`);
+    cy.get('input[formControlName=password]').type(`${'test!1234'}{enter}`);
 
     cy.url().should('include', '/login');
 
+  });
 
-    // cy.visit('/register');
+  it('login ok', () => {
 
-    // cy.intercept(
-    // {
-    //     method: 'GET',
-    //     url: '/api/session',
-    // },
-    // []
-    // ).as('session');
-
-    // cy.get('input[formControlName=firstName]').type('yoga');
-    // cy.get('input[formControlName=lastName]').type('studio');
-    // cy.get('input[formControlName=email]').type(
-    //   `yoga${Date.now().toString()}@studio.com`
-    // );
-    // cy.get('input[formControlName=password]').type(
-    // `${'test!1234'}{enter}{enter}`
-    // );
-
-    // cy.url().should('include', '/login');
-});
-
-  /* it('Login successfull', () => {
     cy.visit('/login')
-
-    cy.get('input[formControlName=email]').type("blackCover@OC.com")
-    cy.get('input[formControlName=password]').type(`${"1234"}{enter}`)
 
     cy.intercept('POST', '/api/auth/login', {
       //! the respond object containing mocked response body
@@ -50,17 +28,14 @@ describe('Login spec', () => {
       },
     })
 
-    cy.intercept(
-      {
-        method: 'GET',
-        url: '/api/session',
-      },
-      []).as('session')
+    cy.get('input[formControlName=email]').type("yoga@studio.com")
+    cy.get('input[formControlName=password]').type(`${"test!1234"}{enter}{enter}`)
+    //cy.intercept({method: 'GET',url: '/api/session',},[]).as('session')
 
-  
       //! ensure that the user is redirected or navigated to  '/sessions'
     cy.url().should('include', '/sessions')
-  }) */
+  });
+
 });
 
 
