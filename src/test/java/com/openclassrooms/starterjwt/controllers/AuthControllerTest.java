@@ -7,6 +7,7 @@ import com.openclassrooms.starterjwt.models.User;
 import com.openclassrooms.starterjwt.payload.request.LoginRequest;
 import com.openclassrooms.starterjwt.payload.request.SignupRequest;
 import com.openclassrooms.starterjwt.payload.response.JwtResponse;
+import com.openclassrooms.starterjwt.payload.response.MessageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,6 +59,24 @@ public class AuthControllerTest {
                 .andReturn();
         assertEquals(200, requestResult.getResponse().getStatus());
     }
+    @Test
+    public void testRegisterUserEmailExit() throws Exception{
+
+        SignupRequest signupRequest = new SignupRequest();
+        signupRequest.setEmail("yoga@studio.com");
+        signupRequest.setPassword("password");
+        signupRequest.setFirstName("Myname");
+        signupRequest.setLastName("Anothername");
+
+        MvcResult requestResult = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(signupRequest)))
+                .andReturn();
+
+        assertEquals(
+                "Error: Email is already taken!",
+                objectMapper.readValue(requestResult.getResponse().getContentAsString(), Message.class).getMessage());
+    }
 
     @Test
     public void testAuthenticateUser() throws Exception{
@@ -78,4 +97,12 @@ public class AuthControllerTest {
         JwtResponse user = objectMapper.readValue(result, JwtResponse.class);
          assertEquals(email, user.getUsername());
     }
+
 }
+
+    class Message {
+         private String message;
+        public String getMessage() {
+            return message;
+        }
+            }

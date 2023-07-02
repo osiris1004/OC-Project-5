@@ -82,15 +82,15 @@
 			<version>1.5.1.Final</version>
 		</dependency>
 
-		<dependency>
+		<!-- <dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<scope>test</scope>
-		</dependency>
-        <dependency>
+		</dependency> -->
+        <!-- <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-        </dependency>
+        </dependency> -->
 
 		<dependency>
 			<groupId>com.github.javafaker</groupId>
@@ -134,6 +134,14 @@
 						<goals>
 							<goal>report</goal>
 						</goals>
+						<configuration>
+							<excludes>
+								<exclude>com/openclassrooms/starterjwt/dto/*</exclude>
+								<exclude>com/openclassrooms/starterjwt/models/*</exclude>
+								<exclude>com/openclassrooms/starterjwt/mapper/*</exclude>
+								<exclude>com/openclassrooms/starterjwt/payload/**</exclude>
+							</excludes>
+						</configuration>
 					</execution>
 
 					<execution>
