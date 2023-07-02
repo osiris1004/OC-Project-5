@@ -1,5 +1,6 @@
 package com.openclassrooms.starterjwt.services;
 
+
 import com.github.javafaker.Faker;
 import com.openclassrooms.starterjwt.exception.BadRequestException;
 import com.openclassrooms.starterjwt.exception.NotFoundException;
