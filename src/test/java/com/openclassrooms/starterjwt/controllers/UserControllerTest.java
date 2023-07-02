@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 //test
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.mockito.Mockito.*;
@@ -65,6 +66,25 @@ class UserControllerTest {
     }
 
     @Test
+    public void testGetUserByIdUserNull() throws Exception {
+        MvcResult requestResult = mockMvc.perform(get("/api/user/3")
+                        .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andReturn();
+        assertEquals(404, requestResult.getResponse().getStatus());
+        assertTrue(requestResult.getResponse().getContentAsString().isEmpty());
+    }
+
+    @Test
+    public void testGetUserByIdThrownError() throws Exception {
+        MvcResult requestResult = mockMvc.perform(get("/api/user/test")
+                        .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andReturn();
+        assertEquals(400, requestResult.getResponse().getStatus());
+    }
+
+    @Test
     public void testDeleteUserById() throws Exception {
         MvcResult requestResult  = mockMvc.perform(delete("/api/user/2")
                 .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))
@@ -74,4 +94,24 @@ class UserControllerTest {
         assertEquals(200, code);
        
     }
+
+    @Test
+    public void testDeleteUserByIdUserNull() throws Exception {
+        MvcResult requestResult  = mockMvc.perform(delete("/api/user/3")
+                        .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andReturn();
+        assertEquals(404, requestResult.getResponse().getStatus());
+        assertTrue(requestResult.getResponse().getContentAsString().isEmpty());
+    }
+
+    @Test
+    public void testDeleteUserByIdThrownError() throws Exception {
+        MvcResult requestResult  = mockMvc.perform(delete("/api/user/test")
+                        .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andReturn();
+        assertEquals(400, requestResult.getResponse().getStatus());
+    }
+
 }
