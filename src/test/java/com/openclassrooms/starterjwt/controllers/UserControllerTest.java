@@ -65,6 +65,27 @@ class UserControllerTest {
     }
 
     @Test
+    public void testGetUserByIdUserNull() throws Exception {
+        MvcResult requestResult = mockMvc.perform(get("/api/user/1")
+                        .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().is(200)).andReturn();
+        String result = requestResult.getResponse().getContentAsString();
+        User resultUser = objectMapper.readValue(result, User.class);
+        assertEquals("Admin", resultUser.getFirstName());
+    }
+
+    public void testGetUserByIdThrownError() throws Exception {
+        MvcResult requestResult = mockMvc.perform(get("/api/user/1")
+                        .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().is(200)).andReturn();
+        String result = requestResult.getResponse().getContentAsString();
+        User resultUser = objectMapper.readValue(result, User.class);
+        assertEquals("Admin", resultUser.getFirstName());
+    }
+
+    @Test
     public void testDeleteUserById() throws Exception {
         MvcResult requestResult  = mockMvc.perform(delete("/api/user/2")
                 .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))

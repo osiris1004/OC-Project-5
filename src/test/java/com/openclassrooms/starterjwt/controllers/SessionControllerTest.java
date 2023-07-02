@@ -181,12 +181,12 @@ public class SessionControllerTest {
 
     @Test
     public void testSave() throws Exception {
-        MvcResult response = mockMvc.perform(get("/api/session/1")
+        MvcResult response = mockMvc.perform(delete("/api/session/1")
                 .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))
                 .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andReturn();
 
-        assertEquals(404, response.getResponse().getStatus());
+        assertEquals(200, response.getResponse().getStatus());
     }
 
     @Test

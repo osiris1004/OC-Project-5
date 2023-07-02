@@ -47,6 +47,7 @@ class TeacherControllerTest {
         restTemplate.postForEntity("/api/auth/login", loginRequest, JwtResponse.class);
     }
 
+
     @Test
     public void testGetTeacherById() throws Exception {
         MvcResult requestResult = mockMvc.perform(get("/api/teacher/1")
@@ -56,6 +57,23 @@ class TeacherControllerTest {
         String result = requestResult.getResponse().getContentAsString();
         TeacherDto resultTeacher = objectMapper.readValue(result, TeacherDto.class);
         assertEquals("Margot", resultTeacher.getFirstName());
+    }
+
+    @Test
+    public void testGetTeacherByIdTeacherNull() throws Exception {
+        MvcResult requestResult = mockMvc.perform(get("/api/teacher/4")
+                        .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andReturn();
+        assertEquals(404, requestResult.getResponse().getStatus());
+    }
+    @Test
+    public void testGetTeacherByIdThrownError() throws Exception {
+        MvcResult requestResult = mockMvc.perform(get("/api/teacher/test")
+                        .with(SecurityMockMvcRequestPostProcessors.user("gym@studio.com"))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andReturn();
+        assertEquals(400, requestResult.getResponse().getStatus());
     }
 
     @Test
