@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -138,7 +139,36 @@ class SessionServiceTest {
         Assertions.assertTrue(session.getUsers().contains(user));
         Mockito.verify(sessionRepository).save(session);
     }
+    @Test
+    void testParticipateNotFound() {
+        Long sessionId = 4L;
+        Long userId = 4L;
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.empty());
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        assertThatThrownBy(() ->  underTest.participate(sessionId, userId))
+                .isInstanceOf(NotFoundException.class);
+    }
 
+    @Test
+    void testParticipateFoundAlready() {
+        Long sessionId = 1L;
+        Long userId = 1L;
+
+        Session session = new Session();
+        session.setId(sessionId);
+
+        session.setUsers(new ArrayList<>());
+
+        User user = new User();
+        user.setId(userId);
+
+        session.getUsers().add(user);
+
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        assertThatThrownBy(() ->  underTest.participate(sessionId, userId))
+                .isInstanceOf(BadRequestException.class);
+    }
     @Test
     public void testNoLongerParticipate() {
         Long sessionId = 1L;
