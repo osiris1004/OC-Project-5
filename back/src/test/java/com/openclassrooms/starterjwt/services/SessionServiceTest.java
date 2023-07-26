@@ -60,6 +60,7 @@ class SessionServiceTest {
 
         verify(sessionRepository).save(sessionArgumentCaptor.capture());// !studentArgumentCaptor.capture() get the
                                                                         // argument
+        //verifies if the save method of the SessionRepository is called with the correct Session argument.
 
         // !captureStudent is the student ....Repository(student) receive or what the
         // service receive
